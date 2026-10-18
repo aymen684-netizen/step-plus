@@ -1,0 +1,9 @@
+{
+  "name": "ستيب بلس المكثف",
+  "short_name": "STEP+",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f8f7",
+  "theme_color": "#17234e",
+  "lang": "ar"
+}
