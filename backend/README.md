@@ -1,21 +1,19 @@
-# English+ Cloudflare Worker (safe setup)
+# English+ AI Worker — guarded deployment
 
-This worker is a deployable **service-status and disabled-API skeleton**. It does not call OpenAI and does not store audio or transcripts.
+Current Cloudflare script: `english-plus-ai` (workers.dev enabled).
+Its `OPENAI_API_KEY` binding is verified as `secret_text`; its value has not been read.
 
-- GET /health: returns service status
-- POST /api/writing/review: 503 until a secure authenticated implementation is deployed
-- POST /api/speaking/session: 503 until a secure Realtime implementation is deployed
+## Routes
+- `GET /health`: reports setup-required (safe public status; no OpenAI call).
+- `POST /api/writing/review`: code for structured formative feedback via Responses API; **returns 503 unless** the server has `ENABLE_WRITING_AI=true`, `ADMIN_TEST_TOKEN` and the OpenAI secret. It also validates origin, bearer token, content type, stage, level and input length. Neither draft nor response is stored by this Worker code.
+- No realtime voice connection has been enabled. No voice payloads accepted.
 
-The public GitHub Pages frontend must never contain standard OpenAI API keys.
+## STOP: Not production-ready
+1. Keep `ENABLE_WRITING_AI` absent/off now. Do not make this API public yet.
+2. Add real authenticated accounts, backend authorization, atomic per-user / IP rate limits, monetary budget controls, abusive input moderation and a privacy review before setting the flag to true.
+3. For an isolated administrator smoke test, generate `ADMIN_TEST_TOKEN` as a strong private secret and add it through Cloudflare's Secret UI. Never commit, transmit in chat, or place it in public frontend JavaScript. A test harness should use a secure local client, not a site-wide public token.
+4. Check provider retention policy separately; `store:false` does not establish zero provider retention. No claims of end-to-end zero retention.
+5. For speaking, design WebRTC connection with a hard backend 120-second TTL, user consent, topic restrictions and provider-retention verification before public activation.
+6. External health URL was not independently confirmed accessible from this environment; Cloudflare API confirmed the deployed Worker exists and the workers.dev binding is enabled.
 
-## For production, implement in this order
-1. Cloudflare Turnstile or identity-based authentication (prefer individual accounts), origin restriction, per-user and IP quotas, and explicit budget ceilings.
-2. Add OPENAI_API_KEY via Cloudflare Workers secret manager; do not commit keys to GitHub or send them in chat.
-3. Implement writing evaluation with server-side schema validation and structured scoring, and non-storing default. Avoid user draft logs.
-4. Review OpenAI data retention and eligibility for a zero-retention arrangement *before* making any zero-retention claims.
-5. For voice, set hard 120-second session expiry server side, use browser WebRTC with ephemeral credentials, stop microphone tracks on completion, and perform content and topic safety checks.
-6. Do end-to-end iOS microphone tests and security testing before enabling public voice AI.
-
-OpenAI Realtime voice: https://developers.openai.com/api/docs/guides/voice-webrtc
-
-Cloudflare Docs: https://developers.cloudflare.com/workers/
+Do not put the OpenAI key in GitHub Pages. Keep audio recordings and transcripts out of logs and databases.
