@@ -17,3 +17,16 @@ Its `OPENAI_API_KEY` binding is verified as `secret_text`; its value has not bee
 6. External health URL was not independently confirmed accessible from this environment; Cloudflare API confirmed the deployed Worker exists and the workers.dev binding is enabled.
 
 Do not put the OpenAI key in GitHub Pages. Keep audio recordings and transcripts out of logs and databases.
+
+## Administrator smoke test (not yet activated)
+
+The backend includes `POST /api/admin/self-test` which sends only a fixed harmless sentence to the model. It requires all of:
+
+- `OPENAI_API_KEY`: secret (confirmed existing)
+- `ADMIN_TEST_TOKEN`: a new high-entropy secret, created in Cloudflare UI; **never** put it in GitHub, a URL, this chat, or the public site.
+- `ENABLE_ADMIN_SELF_TEST`: a temporary Cloudflare plain-text variable whose value is exactly `true`.
+- `Authorization: Bearer <ADMIN_TEST_TOKEN>` header **and** the browser's trusted Origin header. Do not paste a token into a GitHub Pages JavaScript file.
+
+This admin-only gate is suitable for a controlled smoke test, **not** a complete production security model. Check the provider billing limit and account budget first. After the test, immediately remove `ENABLE_ADMIN_SELF_TEST` or set it to `false`, and remove the test token if no longer required. The writing endpoint still remains disabled via `ENABLE_WRITING_AI`, which is intentionally absent.
+
+The runtime URL should be validated through browser/network testing before calling the test successful. No request to the provider has been made by the deployment operation alone.
