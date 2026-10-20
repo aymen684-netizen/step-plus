@@ -1,20 +1,36 @@
-// English+ STAGING Worker, not enabled or deployed.
-// All paid endpoints deny by default. Set secrets on the Worker, never in GitHub Pages.
-// Deployment requires owner auth, quotas and verified OpenAI billing.
-const ORIGIN='https://aymen684-netizen.github.io';
-const TOPICS={intro:'Introduce yourself and discuss daily routines.',travel:'Practice travel and airport communication.',work:'Discuss work and job interviews.',study:'Discuss school and university life.'};
-const LEVELS=['A1','A2','B1','B2','C1'];
-const reply=(data,status=200,origin='')=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store','vary':'Origin',...(origin===ORIGIN?{'access-control-allow-origin':ORIGIN,'access-control-allow-credentials':'true'}:{})}});
-export default {async fetch(request,env){
-const url=new URL(request.url),origin=request.headers.get('Origin')||'';
-if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':origin===ORIGIN?ORIGIN:'null','access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'Content-Type','access-control-allow-credentials':'true','vary':'Origin'}});
-if(url.pathname==='/health')return reply({service:'english-plus-ai-staging',enabled:false},200,origin);
-if(origin!==ORIGIN||request.method!=='POST')return reply({error:'forbidden'},403,origin);
-if(!['/api/speaking/session','/api/writing/review'].includes(url.pathname))return reply({error:'not_found'},404,origin);
-// Config gate deliberately remains shut until security review and manual enablement.
-if(env.ENABLE_PRIVATE_AI!=='true')return reply({error:'not_enabled'},503,origin);
-// Owner session validation should be enforced by a configured Cloudflare Access JWT
-// or an equivalent verified, non-public authentication layer BEFORE enabling this flag.
-// Until such validation is implemented, refuse every request regardless of configuration.
-return reply({error:'owner_auth_not_implemented'},503,origin);
-}};
+// English+ staged API. Authentication proof via Cloudflare ctx.access.
+// Paid AI deliberately disabled pending quota and billing controls.
+const OWNER='aymen684@gmail.com';
+const ACCESS_AUD='0dbb2f48add6b4973115ffb89fb3c1e98aa7bdc5726c13272211fbdb1b3d6a1f';
+const ALLOWED_ORIGIN='https://aymen684-netizen.github.io';
+const respond=(data,status=200,origin='')=>new Response(JSON.stringify(data),{
+ status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin',
+ ...(origin===ALLOWED_ORIGIN?{'Access-Control-Allow-Origin':ALLOWED_ORIGIN,'Access-Control-Allow-Credentials':'true'}:{})}
+});
+export default {
+ async fetch(request,env,ctx){
+  const url=new URL(request.url),origin=request.headers.get('Origin')||'';
+  if(request.method==='OPTIONS'){
+   if(origin!==ALLOWED_ORIGIN)return new Response(null,{status:403});
+   return new Response(null,{status:204,headers:{
+     'Access-Control-Allow-Origin':ALLOWED_ORIGIN,
+     'Access-Control-Allow-Credentials':'true',
+     'Access-Control-Allow-Methods':'GET,POST,OPTIONS',
+     'Access-Control-Allow-Headers':'Content-Type',
+     'Access-Control-Max-Age':'600','Vary':'Origin'}});
+  }
+  // Access can be bypassed on alternative routes if configured incorrectly.
+  // Fail closed unless the current direct request was authenticated by Access.
+  if(!ctx.access || ctx.access.aud!==ACCESS_AUD)return respond({error:'access_required'},403,origin);
+  let identity;
+  try{identity=await ctx.access.getIdentity()}catch{return respond({error:'identity_unavailable'},403,origin)}
+  if(identity?.email?.toLowerCase()!==OWNER)return respond({error:'owner_only'},403,origin);
+  if(url.pathname==='/api/auth/status'&&request.method==='GET')
+   return respond({authenticated:true,owner:true,paidAiEnabled:false},200,origin);
+  if(url.pathname==='/health'&&request.method==='GET')
+   return respond({service:'english-plus-ai-staging',authentication:'required',paidAiEnabled:false},200,origin);
+  if(['/api/speaking/session','/api/writing/review'].includes(url.pathname)&&request.method==='POST')
+   return respond({error:'ai_disabled_pending_usage_limits'},503,origin);
+  return respond({error:'not_found'},404,origin);
+ }
+};
