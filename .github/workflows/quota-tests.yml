@@ -1,0 +1,21 @@
+name: English+ quota tests
+on:
+  push:
+    branches: [feature/english-ai-studio]
+  pull_request:
+    paths:
+      - 'backend/quota-test-worker.mjs'
+      - 'tests/quota.test.mjs'
+      - '.github/workflows/quota-tests.yml'
+jobs:
+  quota-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run quota unit tests
+        run: node --test tests/quota.test.mjs
