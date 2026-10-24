@@ -16,7 +16,6 @@ function runtime(overrides = {}) {
     OPENAI_API_KEY: 'synthetic-key-not-a-real-api-key',
     ADMIN_TEST_TOKEN: TEST_TOKEN,
     ENABLE_ADMIN_SELF_TEST: 'false',
-    ENABLE_WRITING_AI: 'false',
     ...overrides,
     URL,
     Response,
@@ -136,5 +135,46 @@ test('preflight for configured frontend does not contact provider', async () => 
   const res = await app.dispatch('/api/admin/self-test', {method: 'OPTIONS'});
   assert.equal(res.status, 204);
   assert.equal(res.headers.get('access-control-allow-origin'), ORIGIN);
+  assert.equal(app.providerCalls(), 0);
+});
+
+test('writing rejects invalid stage before contacting provider', async () => {
+  const app = runtime({ENABLE_WRITING_AI: 'true'});
+  const res = await app.dispatch('/api/writing/review', {
+    method: 'POST', token: TEST_TOKEN,
+    body: {draft: 'This is a harmless synthetic writing test with enough words.', stage: 'not-allowed', level: 'B1'}
+  });
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error, 'invalid_input');
+  assert.equal(app.providerCalls(), 0);
+});
+
+test('writing rejects invalid level before contacting provider', async () => {
+  const app = runtime({ENABLE_WRITING_AI: 'true'});
+  const res = await app.dispatch('/api/writing/review', {
+    method: 'POST', token: TEST_TOKEN,
+    body: {draft: 'This is a harmless synthetic writing test with enough words.', stage: 'paragraph', level: 'C9'}
+  });
+  assert.equal(res.status, 400);
+  assert.equal(app.providerCalls(), 0);
+});
+
+test('writing rejects short drafts before contacting provider', async () => {
+  const app = runtime({ENABLE_WRITING_AI: 'true'});
+  const res = await app.dispatch('/api/writing/review', {
+    method: 'POST', token: TEST_TOKEN,
+    body: {draft: 'Too short.', stage: 'sentence', level: 'A1'}
+  });
+  assert.equal(res.status, 400);
+  assert.equal(app.providerCalls(), 0);
+});
+
+test('writing rejects drafts beyond the configured size limit', async () => {
+  const app = runtime({ENABLE_WRITING_AI: 'true'});
+  const res = await app.dispatch('/api/writing/review', {
+    method: 'POST', token: TEST_TOKEN,
+    body: {draft: 'a'.repeat(6001), stage: 'paragraph', level: 'B1'}
+  });
+  assert.equal(res.status, 400);
   assert.equal(app.providerCalls(), 0);
 });
