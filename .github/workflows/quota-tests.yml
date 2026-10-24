@@ -5,7 +5,9 @@ on:
   pull_request:
     paths:
       - 'backend/quota-test-worker.mjs'
+      - 'backend/worker-staging.js'
       - 'tests/quota.test.mjs'
+      - 'tests/staging-access.test.mjs'
       - '.github/workflows/quota-tests.yml'
 jobs:
   quota-tests:
@@ -18,4 +20,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run quota unit tests
-        run: node --test tests/quota.test.mjs
+        run: node --test tests/*.test.mjs
