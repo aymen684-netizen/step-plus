@@ -34,7 +34,7 @@ test('desktop: offline report renders scores without reading the draft',async({p
 });
 
 for(const width of [390,375]){
- test('mobile '+width+'px: preview is reachable and no horizontal overflow',async({page})=>{
+ test('mobile '+width+'px: preview is reachable and no horizontal overflow',async({page},testInfo)=>{
   await page.setViewportSize({width,height:844});
   const external=await openLocalStudio(page);
   await previewButton(page).click();
@@ -47,7 +47,7 @@ for(const width of [390,375]){
   const columns=await page.locator('.cards > .card').evaluateAll(els=>els.map(x=>x.getBoundingClientRect().x));
   expect(Math.abs(columns[0]-columns[1])).toBeLessThan(2);
   expect(external).toEqual([]);
-  await page.screenshot({path:'tests/browser-results/mobile-'+width+'.png',fullPage:true});
+  await page.screenshot({path:'tests/browser-results/'+testInfo.project.name+'-mobile-'+width+'.png',fullPage:true});
  });
 }
 
