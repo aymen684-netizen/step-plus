@@ -53,7 +53,7 @@ class QuotaConcurrentTests(unittest.TestCase):
 
     def concurrent(self, day: str, owner: str, kind: str, limit: int, attempts: int):
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(attempts, 24)) as pool:
-            work = (pool.submit(self.consume, day, owner, kind, limit) for _ in range(attempts))
+            work = [pool.submit(self.consume, day, owner, kind, limit) for _ in range(attempts)]
             return [future.result(timeout=30) for future in work]
 
     def test_writing_race_cannot_reserve_more_than_ten(self):
