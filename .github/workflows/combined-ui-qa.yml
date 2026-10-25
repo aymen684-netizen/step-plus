@@ -1,0 +1,36 @@
+name: English+ combined UI and backend QA
+
+on:
+  push:
+    branches:
+      - qa/writing-ui-regression-20261025
+    paths:
+      - 'backend/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'ai-studio.html'
+      - '.github/workflows/combined-ui-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  combined-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Syntax checks
+        run: |
+          node --check backend/worker.js
+          node --check backend/quota-test-worker.mjs
+          node --check src/writing-feedback-renderer.mjs
+          node --check tests/writing-renderer.test.mjs
+      - name: All offline quota security writing and UI checks
+        run: node --test tests/*.test.mjs
