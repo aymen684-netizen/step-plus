@@ -9,6 +9,7 @@ on:
       - 'backend/daily-quotas.js'
       - 'tests/private-writing-preflight.test.mjs'
       - 'tests/quota.test.mjs'
+      - 'tests/quota-sqlite-concurrency.py'
       - '.github/workflows/private-writing-preflight.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'backend/daily-quotas.js'
       - 'tests/private-writing-preflight.test.mjs'
       - 'tests/quota.test.mjs'
+      - 'tests/quota-sqlite-concurrency.py'
       - '.github/workflows/private-writing-preflight.yml'
 
 permissions:
@@ -40,3 +42,5 @@ jobs:
           node --check tests/private-writing-preflight.test.mjs
       - name: Offline Access, quota and bounded-body tests
         run: node --test tests/private-writing-preflight.test.mjs tests/quota.test.mjs
+      - name: Concurrent SQLite reservations using actual source SQL (isolated)
+        run: python3 tests/quota-sqlite-concurrency.py
