@@ -15,6 +15,9 @@ on:
   pull_request:
     paths:
       - 'backend/worker.js'
+      - 'ai-studio.html'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/writing-renderer.test.mjs'
       - 'tests/writing-feedback.test.mjs'
       - '.github/workflows/writing-feedback-tests.yml'
 
