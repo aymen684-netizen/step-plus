@@ -6,9 +6,9 @@ const url='https://english-plus-ai.aymen684.workers.dev/health';
 const evaluate=(status,location)=>classifyUnauthenticated({status,location,requestUrl:url});
 
 test('read-only target list uses GET-safe routes and known Workers',()=>{
- assert.equal(PROBES.length,8);
+ assert.equal(PROBES.length,12);
  const names=new Set(PROBES.map(x=>x.id));
- assert.equal(names.size,8);
+ assert.equal(names.size,12);
  for(const target of PROBES){
   const p=new URL(target.url);
   assert.equal(p.protocol,'https:');
@@ -117,4 +117,33 @@ test('expanded route set includes both writing and unknown-path probes',()=>{
   assert.ok(filtered.some(x=>new URL(x.url).pathname==='/englishplus-unexpected-route-probe'));
   assert.ok(filtered.every(x=>new URL(x.url).search===''));
  }
+});
+
+test('four synthetically spoofed-identity GET probes cover both Worker hosts',()=>{
+ const spoofs=PROBES.filter(p=>p.spoof===true);
+ assert.equal(spoofs.length,4);
+ for(const host of ['english-plus-ai.aymen684.workers.dev','english-plus-ai-staging.aymen684.workers.dev']){
+  const requests=spoofs.filter(p=>new URL(p.url).hostname===host);
+  assert.deepEqual(requests.map(p=>new URL(p.url).pathname).sort(), ['/api/writing/review','/health']);
+ }
+});
+
+test('spoof probes contain only fixed fake identity headers and never credentials or bodies',async()=>{
+ const p=PROBES.find(q=>q.id==='production-health-spoof');
+ const mock=async (_url,opts)=>{
+  assert.equal(opts.method,'GET');
+  assert.equal(opts.credentials,'omit');
+  assert.equal(opts.redirect,'manual');
+  assert.equal(opts.body,undefined);
+  assert.equal(opts.headers['Cf-Access-Authenticated-User-Email'],'synthetic-attacker@example.invalid');
+  assert.equal(opts.headers['X-Forwarded-Email'],'synthetic-attacker@example.invalid');
+  assert.equal(opts.headers['X-Forwarded-User'],'synthetic-attacker@example.invalid');
+  assert.equal(opts.headers.Authorization,undefined);
+  assert.equal(opts.headers.Cookie,undefined);
+  return new Response(null,{status:302,headers:{Location:'/cdn-cgi/access/login'}});
+ };
+ const result=await probeOne(p,{fetchImpl:mock});
+ assert.equal(result.accepted,true);
+ assert.equal(result.outcome,'CLOUDFLARE_ACCESS_CHALLENGE');
+ assert.equal(JSON.stringify(result).includes('synthetic-attacker'),false);
 });
