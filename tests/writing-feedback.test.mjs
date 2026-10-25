@@ -118,3 +118,20 @@ test('provider response that is not valid JSON is handled safely',async()=>{
  const r=await x.review();assert.equal(r.status,502);
  assert.equal((await r.json()).error,'invalid_provider_response');
 });
+
+test('unexpected provider output containers are rejected, not thrown',async()=>{
+ for(const output of [{unexpected:'object'},[null],[{content:null}]]){
+  const x=makeHarness(async()=>new Response(JSON.stringify({output}),{status:200}));
+  const r=await x.review();
+  assert.equal(r.status,502);
+  assert.equal((await r.json()).error,'invalid_provider_response');
+ }
+});
+
+test('malformed output items cannot corrupt an otherwise valid rubric',async()=>{
+ const output=[{content:[null,{type:'output_text',text:JSON.stringify(VALID_FEEDBACK)}]}];
+ const x=makeHarness(async()=>new Response(JSON.stringify({output}),{status:200}));
+ const r=await x.review();
+ assert.equal(r.status,200);
+ assert.equal((await r.json()).feedback.scores.coherence,85);
+});
