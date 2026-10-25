@@ -13,10 +13,13 @@ export default defineConfig({
  outputDir:'./browser-results',
  use:{
   baseURL:'http://127.0.0.1:8765',
-  browserName:'chromium',
   headless:true,
   trace:'off'
  },
+ projects:[
+  {name:'chromium',use:{browserName:'chromium'}},
+  {name:'webkit',use:{browserName:'webkit'}}
+ ],
  webServer:{
   cwd:fileURLToPath(new URL('../',import.meta.url)),
   command:'python3 -m http.server 8765 --bind 127.0.0.1',
