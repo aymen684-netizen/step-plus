@@ -35,7 +35,35 @@ if(!response.ok)return json({error:'provider_failure',status:response.status},50
 let payload;try{payload=await response.json()}catch{return json({error:'invalid_provider_response'},502,origin)}
 const raw=(payload.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('').trim();
 let feedback;try{feedback=JSON.parse(raw)}catch{return json({error:'unparseable_feedback'},502,origin)}
-if(!feedback||typeof feedback.summary!=='string'||!Array.isArray(feedback.corrections))return json({error:'invalid_feedback'},502,origin);
-return json({feedback:{summary:feedback.summary.slice(0,1500),strengths:(feedback.strengths||[]).slice(0,3),corrections:feedback.corrections.slice(0,3),nextTask:String(feedback.nextTask||'').slice(0,800),scores:{taskCompletion:feedback.taskCompletion,grammar:feedback.grammar,coherence:feedback.coherence,vocabulary:feedback.vocabulary}},note:'Formative AI feedback only, not an accredited language score. No draft was saved by this Worker.'},200,origin);
+// Model output is untrusted, even when prompted to return a rubric.
+// Reject malformed data before exposing it to the learner's interface.
+const validText=(x,max)=>typeof x==='string'&&x.trim().length>0&&x.length<=max;
+const scoreFields=['taskCompletion','grammar','coherence','vocabulary'];
+const validScores=scoreFields.every(k=>Number.isInteger(feedback?.[k])&&feedback[k]>=0&&feedback[k]<=100);
+const validCorrections=Array.isArray(feedback?.corrections)&&feedback.corrections.length<=3&&
+ feedback.corrections.every(item=>item&&typeof item==='object'&&!Array.isArray(item)&&
+ ['original','suggestion','reason'].every(k=>validText(item[k],1500)));
+const validStrengths=Array.isArray(feedback?.strengths)&&feedback.strengths.length<=3&&
+ feedback.strengths.every(x=>validText(x,1200));
+if(!feedback||typeof feedback!=='object'||Array.isArray(feedback)||
+ !validText(feedback.summary,4000)||!validText(feedback.nextTask,4000)||
+ !validScores||!validCorrections||!validStrengths)
+ return json({error:'invalid_feedback'},502,origin);
+return json({feedback:{
+ summary:feedback.summary.trim().slice(0,1500),
+ strengths:feedback.strengths.map(x=>x.trim().slice(0,600)),
+ corrections:feedback.corrections.map(item=>({
+  original:item.original.trim().slice(0,700),
+  suggestion:item.suggestion.trim().slice(0,700),
+  reason:item.reason.trim().slice(0,900)
+ })),
+ nextTask:feedback.nextTask.trim().slice(0,800),
+ scores:{
+  taskCompletion:feedback.taskCompletion,
+  grammar:feedback.grammar,
+  coherence:feedback.coherence,
+  vocabulary:feedback.vocabulary
+ }
+},note:'Formative AI feedback only, not an accredited language score. No draft was saved by this Worker.'},200,origin);
 };
 addEventListener('fetch',event=>event.respondWith(reply(event.request,globalThis)()));
