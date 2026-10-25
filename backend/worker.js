@@ -33,7 +33,11 @@ let response;
 try{response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',store:false,max_output_tokens:700,instructions:instruction,input:JSON.stringify({stage,level,draft})}),signal:AbortSignal.timeout(20000)})}catch{return json({error:'provider_unavailable'},502,origin)}
 if(!response.ok)return json({error:'provider_failure',status:response.status},502,origin);
 let payload;try{payload=await response.json()}catch{return json({error:'invalid_provider_response'},502,origin)}
-const raw=(payload.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('').trim();
+// Defensive parsing: upstream content can be malformed or partially populated.
+if(!Array.isArray(payload?.output))return json({error:'invalid_provider_response'},502,origin);
+const parts=payload.output.flatMap(item=>Array.isArray(item?.content)?item.content:[]);
+const raw=parts.filter(item=>item&&item.type==='output_text'&&typeof item.text==='string').map(item=>item.text).join('').trim();
+if(!raw)return json({error:'invalid_provider_response'},502,origin);
 let feedback;try{feedback=JSON.parse(raw)}catch{return json({error:'unparseable_feedback'},502,origin)}
 // Model output is untrusted, even when prompted to return a rubric.
 // Reject malformed data before exposing it to the learner's interface.
