@@ -27,7 +27,7 @@ test('401 or 403 counts as HTTP denial but not verified Access attribution',()=>
 });
 
 test('Access login redirects are accepted',()=>{
- const a=evaluate(302,'https://aymen684.cloudflareaccess.com/cdn-cgi/access/login/path');
+ const a=evaluate(302,'https://lingering-bread-cdac.cloudflareaccess.com/cdn-cgi/access/login/path');
  assert.equal(a.accepted,true);
  assert.equal(a.outcome,'CLOUDFLARE_ACCESS_CHALLENGE');
  const b=evaluate(302,'/cdn-cgi/access/login/myapp');
@@ -37,9 +37,10 @@ test('Access login redirects are accepted',()=>{
 test('redirects to unrelated hosts or unprotected app paths are rejected',()=>{
  for(const loc of [
   'https://example.com/sign-in',
+  'https://some-other-tenant.cloudflareaccess.com/cdn-cgi/access/login',
   'https://aymen684.cloudflareaccess.com.evil.test/login',
   'https://english-plus-ai.aymen684.workers.dev/',
-  'http://aymen684.cloudflareaccess.com/cdn-cgi/access/login',
+  'http://lingering-bread-cdac.cloudflareaccess.com/cdn-cgi/access/login',
   'javascript:alert(1)'
  ]){
   assert.equal(evaluate(302,loc).accepted,false,loc);
