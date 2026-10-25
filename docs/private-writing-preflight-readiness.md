@@ -14,7 +14,7 @@ This branch adds `backend/private-writing-preflight.mjs`. It is a **new, standal
 - Responses use `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`.
 
 ## CI proof
-`node --test tests/private-writing-preflight.test.mjs tests/quota.test.mjs` verifies 26 dry-run guard scenarios plus seven existing quota scenarios. Mock D1 behavior **does not prove Cloudflare D1 concurrency or Access enforcement at the edge**. The first CI run had two test-harness mistakes; they were corrected without modifying Worker behavior.
+`node --test tests/private-writing-preflight.test.mjs tests/quota.test.mjs` verifies 26 dry-run guard scenarios plus seven existing quota scenarios. In addition, `python3 tests/quota-sqlite-concurrency.py` executes the **exact SQL extracted from `backend/daily-quotas.js`** against an isolated local SQLite database with concurrent submissions: five checks passed for writing caps, speaking caps, multi-owner isolation, day separation, and schema/SQL fidelity. CI: https://github.com/aymen684-netizen/step-plus/actions/runs/40224033370 at SHA `33ddaa0762d97cb0b765c1e37fc9c32de3291c66` (**33/33 Node + 5/5 SQLite**). An initial Python test scheduled submissions lazily; this was corrected to enqueue every concurrent operation before awaiting completion, and only the later passing evidence is counted. **Neither mock D1 nor local SQLite proves Cloudflare D1 concurrency or Access enforcement at the edge.** The first Node CI run had two test-harness mistakes; they were corrected without modifying Worker behavior.
 
 ## Mandatory before ANY staging deployment
 - [ ] Independent code review against this document and all 33 CI assertions.
@@ -22,7 +22,8 @@ This branch adds `backend/private-writing-preflight.mjs`. It is a **new, standal
 - [ ] Validate no script routes, secrets, D1 IDs or access policies are changed unintentionally.
 - [ ] Confirm the staging D1 database is isolated from any production learner data.
 - [ ] Do not enable any dry-run flag until the environment and rollback version are documented.
-- [ ] Test unauthenticated requests and an unauthorized identity from a network that can resolve the `workers.dev` hostname. A successful owner policy test alone is insufficient.
+- [x] Anonymous GET proof on **eight selected protected paths**: HTTP 302 Access challenges from the exact account login host, via [PR #8](https://github.com/aymen684-netizen/step-plus/pull/8) / [CI](https://github.com/aymen684-netizen/step-plus/actions/runs/40223478653).
+- [ ] An authenticated but **unauthorized identity** and non-GET methods are still unverified. A successful owner policy test and anonymous GET alone are insufficient.
 - [ ] Browser test on mobile and desktop: CORS, Access login flow, handling of 403/413/429/503 and session expiry.
 - [ ] Confirm D1 quota reservations atomically under **real concurrent staging requests**, read-only checks first and controlled synthetic writes only with approval.
 - [ ] Record version/commit SHA, CI run, logs (excluding request bodies) and rollback plan.
