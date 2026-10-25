@@ -8,7 +8,7 @@ const evaluate=(status,location)=>classifyUnauthenticated({status,location,reque
 test('read-only target list uses GET-safe routes and known Workers',()=>{
  assert.equal(PROBES.length,8);
  const names=new Set(PROBES.map(x=>x.id));
- assert.equal(names.size,4);
+ assert.equal(names.size,8);
  for(const target of PROBES){
   const p=new URL(target.url);
   assert.equal(p.protocol,'https:');
