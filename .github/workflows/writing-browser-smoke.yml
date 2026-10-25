@@ -9,6 +9,7 @@ on:
       - 'src/writing-feedback-renderer.mjs'
       - 'tests/browser/**'
       - 'tests/playwright.config.mjs'
+      - 'docs/browser-writing-ui-e2e-20261025.md'
       - '.github/workflows/writing-browser-smoke.yml'
   workflow_dispatch:
 
