@@ -1,0 +1,42 @@
+name: English+ private staging writing preflight
+
+on:
+  push:
+    branches:
+      - feature/private-writing-preflight-20261025
+    paths:
+      - 'backend/private-writing-preflight.mjs'
+      - 'backend/daily-quotas.js'
+      - 'tests/private-writing-preflight.test.mjs'
+      - 'tests/quota.test.mjs'
+      - '.github/workflows/private-writing-preflight.yml'
+  pull_request:
+    paths:
+      - 'backend/private-writing-preflight.mjs'
+      - 'backend/daily-quotas.js'
+      - 'tests/private-writing-preflight.test.mjs'
+      - 'tests/quota.test.mjs'
+      - '.github/workflows/private-writing-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  writing-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Syntax checks
+        run: |
+          node --check backend/private-writing-preflight.mjs
+          node --check backend/daily-quotas.js
+          node --check tests/private-writing-preflight.test.mjs
+      - name: Offline Access, quota and bounded-body tests
+        run: node --test tests/private-writing-preflight.test.mjs tests/quota.test.mjs
