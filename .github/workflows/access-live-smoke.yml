@@ -9,6 +9,7 @@ on:
       - 'tests/access-live-smoke.test.mjs'
       - 'tests/access-anonymous-post-smoke.mjs'
       - 'tests/access-anonymous-post-smoke.test.mjs'
+      - 'docs/access-unauthenticated-http-20261025.md'
       - '.github/workflows/access-live-smoke.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'tests/access-live-smoke.test.mjs'
       - 'tests/access-anonymous-post-smoke.mjs'
       - 'tests/access-anonymous-post-smoke.test.mjs'
+      - 'docs/access-unauthenticated-http-20261025.md'
       - '.github/workflows/access-live-smoke.yml'
   workflow_dispatch:
 
