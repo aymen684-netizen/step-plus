@@ -110,3 +110,15 @@ test('renderer source contains no HTML parsing, fetch or storage APIs',()=>{
  assert.doesNotMatch(source,/\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML\s*\(/);
  assert.doesNotMatch(source,/\bfetch\s*\(|\blocalStorage\b|\bsessionStorage\b/);
 });
+
+test('offline preview is wired but cannot read or transmit the learner draft',()=>{
+ const html=readFileSync(new URL('../ai-studio.html',import.meta.url),'utf8');
+ assert.match(html,/src\/writing-feedback-renderer\.mjs/);
+ assert.match(html,/id="previewFeedback"/);
+ assert.match(html,/id="feedbackPreview"/);
+ const moduleScript=html.split('<script type="module">')[1]?.split('</script>')[0];
+ assert.ok(moduleScript,'Preview must use a separate ES module script');
+ assert.match(moduleScript,/renderWritingFeedback\(/);
+ assert.doesNotMatch(moduleScript,/fetch\s*\(|XMLHttpRequest|navigator\.sendBeacon|localStorage|sessionStorage/);
+ assert.doesNotMatch(moduleScript,/getElementById\(['"]draft['"]\)|\.value\b/);
+});
