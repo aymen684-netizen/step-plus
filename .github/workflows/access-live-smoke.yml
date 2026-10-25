@@ -1,0 +1,42 @@
+name: English+ unauthenticated Access HTTP smoke
+
+on:
+  push:
+    branches:
+      - test/access-live-denial-20261025
+    paths:
+      - 'tests/access-live-smoke.mjs'
+      - 'tests/access-live-smoke.test.mjs'
+      - '.github/workflows/access-live-smoke.yml'
+  pull_request:
+    paths:
+      - 'tests/access-live-smoke.mjs'
+      - 'tests/access-live-smoke.test.mjs'
+      - '.github/workflows/access-live-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-denial-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout without retaining credentials
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Node.js for safe HTTP read-only GET tests
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Syntax verification
+        run: |
+          node --check tests/access-live-smoke.mjs
+          node --check tests/access-live-smoke.test.mjs
+      - name: Offline classifier tests (no network)
+        run: node --test tests/access-live-smoke.test.mjs
+      - name: Test anonymous HTTP denials from GitHub runner (four GET requests, zero secrets)
+        run: node tests/access-live-smoke.mjs
