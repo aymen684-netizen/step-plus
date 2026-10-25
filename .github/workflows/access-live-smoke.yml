@@ -7,11 +7,15 @@ on:
     paths:
       - 'tests/access-live-smoke.mjs'
       - 'tests/access-live-smoke.test.mjs'
+      - 'tests/access-anonymous-post-smoke.mjs'
+      - 'tests/access-anonymous-post-smoke.test.mjs'
       - '.github/workflows/access-live-smoke.yml'
   pull_request:
     paths:
       - 'tests/access-live-smoke.mjs'
       - 'tests/access-live-smoke.test.mjs'
+      - 'tests/access-anonymous-post-smoke.mjs'
+      - 'tests/access-anonymous-post-smoke.test.mjs'
       - '.github/workflows/access-live-smoke.yml'
   workflow_dispatch:
 
@@ -36,7 +40,11 @@ jobs:
         run: |
           node --check tests/access-live-smoke.mjs
           node --check tests/access-live-smoke.test.mjs
+          node --check tests/access-anonymous-post-smoke.mjs
+          node --check tests/access-anonymous-post-smoke.test.mjs
       - name: Offline classifier tests (no network)
-        run: node --test tests/access-live-smoke.test.mjs
-      - name: Test anonymous HTTP denials from GitHub runner (four GET requests, zero secrets)
+        run: node --test tests/access-live-smoke.test.mjs tests/access-anonymous-post-smoke.test.mjs
+      - name: Test anonymous GET challenges (12 safe requests, zero secrets)
         run: node tests/access-live-smoke.mjs
+      - name: Test unauthenticated bodyless POST challenges (4 safe requests)
+        run: node tests/access-anonymous-post-smoke.mjs
