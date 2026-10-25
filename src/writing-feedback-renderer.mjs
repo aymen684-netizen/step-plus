@@ -19,7 +19,7 @@ export function renderWritingFeedback(container,result){
  };
  const reject=()=>{
   const message=doc.createElement('p');
-  message.textContent='تعذر عرض التقرير بسبب بيانات غير صالحة. لم تُرسل أي كتابة من هذه المعاينة.';
+  message.textContent='تعذر عرض التقرير بسبب بيانات غير صالحة. الرجاء إعادة المحاولة.';
   container.replaceChildren(message);
   return false;
  };
