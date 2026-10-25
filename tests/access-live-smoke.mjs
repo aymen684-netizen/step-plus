@@ -20,7 +20,7 @@ export function classifyUnauthenticated({status,location,requestUrl}){
   let target;
   try{target=new URL(location,requestUrl)}catch{return {accepted:false,outcome:'INVALID_REDIRECT'};}
   const host=target.hostname.toLowerCase();
-  const onAccessHost=host.endsWith('.cloudflareaccess.com');
+  const onAccessHost=host==='lingering-bread-cdac.cloudflareaccess.com' && target.pathname.startsWith('/cdn-cgi/access/');
   const onAppAccessPath=host===requestHost && target.pathname.startsWith('/cdn-cgi/access/');
   if(target.protocol==='https:'&&(onAccessHost||onAppAccessPath))
    return {accepted:true,outcome:'CLOUDFLARE_ACCESS_CHALLENGE'};
