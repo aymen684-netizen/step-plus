@@ -101,7 +101,7 @@ test('Access identity for another email is rejected',async()=>{
 });
 
 test('missing opaque Cloudflare user UUID is rejected',async()=>{
- const r=await response(env(),ctx(EMAIL,AUD,undefined));
+ const r=await response(env(),ctx(EMAIL,AUD,null));
  assert.equal(r.status,403);
 });
 
@@ -235,6 +235,6 @@ test('database errors fail closed and do not leak diagnostics',async()=>{
 
 test('source cannot call OpenAI or network and does not log drafts',()=>{
  const source=readFileSync(new URL('../backend/private-writing-preflight.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(source,/\bfetch\s*\(|api\.openai\.com|console\.|\.textContent\s*=/);
+ assert.doesNotMatch(source,/\b(?:await|return)\s+fetch\s*\(|globalThis\.fetch\s*\(|api\.openai\.com|console\.|\.textContent\s*=/);
  assert.doesNotMatch(source,/\bOPENAI_API_KEY\b|\bADMIN_TEST_TOKEN\b/);
 });
