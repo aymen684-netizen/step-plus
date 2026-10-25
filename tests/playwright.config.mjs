@@ -1,4 +1,5 @@
 import {defineConfig} from '@playwright/test';
+import {fileURLToPath} from 'node:url';
 
 // Runs only against the repository's local static site, never production.
 // No actual learner data, Cloudflare credentials, paid APIs or external services.
@@ -17,6 +18,7 @@ export default defineConfig({
   trace:'off'
  },
  webServer:{
+  cwd:fileURLToPath(new URL('../',import.meta.url)),
   command:'python3 -m http.server 8765 --bind 127.0.0.1',
   url:'http://127.0.0.1:8765/ai-studio.html',
   reuseExistingServer:false,
