@@ -40,7 +40,7 @@ jobs:
         run: npx playwright test -c tests/playwright.config.mjs
       - name: Upload synthetic-only mobile preview screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: english-plus-browser-smoke-images
           path: tests/browser-results/*.png
