@@ -1,5 +1,5 @@
 // English+ unauthenticated HTTP read-only Access verification.
-// Uses exactly four GET requests without cookies, credentials, request bodies or redirects.
+// Uses exactly eight GET requests without cookies, credentials, request bodies or redirects.
 // This script NEVER touches /api/writing/review with POST or calls the AI provider.
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
@@ -8,13 +8,19 @@ export const PROBES=Object.freeze([
  {id:'production-health',url:'https://english-plus-ai.aymen684.workers.dev/health'},
  {id:'production-admin-get',url:'https://english-plus-ai.aymen684.workers.dev/api/admin/self-test'},
  {id:'staging-health',url:'https://english-plus-ai-staging.aymen684.workers.dev/health'},
- {id:'staging-auth-status',url:'https://english-plus-ai-staging.aymen684.workers.dev/api/auth/status'}
+ {id:'staging-auth-status',url:'https://english-plus-ai-staging.aymen684.workers.dev/api/auth/status'},
+ {id:'production-writing-get',url:'https://english-plus-ai.aymen684.workers.dev/api/writing/review'},
+ {id:'staging-writing-get',url:'https://english-plus-ai-staging.aymen684.workers.dev/api/writing/review'},
+ {id:'production-unknown-route',url:'https://english-plus-ai.aymen684.workers.dev/englishplus-unexpected-route-probe'},
+ {id:'staging-unknown-route',url:'https://english-plus-ai-staging.aymen684.workers.dev/englishplus-unexpected-route-probe'}
 ]);
 
 export function classifyUnauthenticated({status,location,requestUrl}){
  const requestHost=new URL(requestUrl).hostname.toLowerCase();
  if(status===401||status===403){
-  return {accepted:true,outcome:'HTTP_DENIED_NOT_ACCESS_ATTRIBUTED'};
+  // Denial may come from the Worker itself even if Access is bypassed.
+  // For this Access-specific gate, only a verified Access challenge counts.
+  return {accepted:false,outcome:'HTTP_DENIED_NOT_ACCESS_ATTRIBUTED'};
  }
  if([301,302,303,307,308].includes(status)){
   let target;
