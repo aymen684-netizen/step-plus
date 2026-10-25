@@ -11,6 +11,8 @@ on:
       - 'src/writing-feedback-renderer.mjs'
       - 'tests/writing-renderer.test.mjs'
       - 'tests/writing-feedback.test.mjs'
+      - 'tests/writing-smoke-cases.test.mjs'
+      - 'tests/fixtures/writing-smoke-cases.json'
       - '.github/workflows/writing-feedback-tests.yml'
   pull_request:
     paths:
@@ -19,6 +21,8 @@ on:
       - 'src/writing-feedback-renderer.mjs'
       - 'tests/writing-renderer.test.mjs'
       - 'tests/writing-feedback.test.mjs'
+      - 'tests/writing-smoke-cases.test.mjs'
+      - 'tests/fixtures/writing-smoke-cases.json'
       - '.github/workflows/writing-feedback-tests.yml'
 
 permissions:
@@ -42,5 +46,6 @@ jobs:
           node --check tests/writing-feedback.test.mjs
           node --check src/writing-feedback-renderer.mjs
           node --check tests/writing-renderer.test.mjs
+          node --check tests/writing-smoke-cases.test.mjs
       - name: Test AI writing response contract (offline)
-        run: node --test tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs
+        run: node --test tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs tests/writing-smoke-cases.test.mjs
