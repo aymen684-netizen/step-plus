@@ -1,5 +1,5 @@
 // English+ unauthenticated HTTP read-only Access verification.
-// Uses exactly eight GET requests without cookies, credentials, request bodies or redirects.
+// Uses exactly twelve GET requests without cookies, credentials, request bodies or redirects; four include synthetic forged identity headers.
 // This script NEVER touches /api/writing/review with POST or calls the AI provider.
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
@@ -12,7 +12,11 @@ export const PROBES=Object.freeze([
  {id:'production-writing-get',url:'https://english-plus-ai.aymen684.workers.dev/api/writing/review'},
  {id:'staging-writing-get',url:'https://english-plus-ai-staging.aymen684.workers.dev/api/writing/review'},
  {id:'production-unknown-route',url:'https://english-plus-ai.aymen684.workers.dev/englishplus-unexpected-route-probe'},
- {id:'staging-unknown-route',url:'https://english-plus-ai-staging.aymen684.workers.dev/englishplus-unexpected-route-probe'}
+ {id:'staging-unknown-route',url:'https://english-plus-ai-staging.aymen684.workers.dev/englishplus-unexpected-route-probe'},
+ {id:'production-health-spoof',url:'https://english-plus-ai.aymen684.workers.dev/health',spoof:true},
+ {id:'staging-health-spoof',url:'https://english-plus-ai-staging.aymen684.workers.dev/health',spoof:true},
+ {id:'production-writing-spoof',url:'https://english-plus-ai.aymen684.workers.dev/api/writing/review',spoof:true},
+ {id:'staging-writing-spoof',url:'https://english-plus-ai-staging.aymen684.workers.dev/api/writing/review',spoof:true}
 ]);
 
 export function classifyUnauthenticated({status,location,requestUrl}){
@@ -41,7 +45,12 @@ export function classifyUnauthenticated({status,location,requestUrl}){
 export async function probeOne(probe,{fetchImpl=fetch}={}){
  const opts={
   method:'GET', redirect:'manual', credentials:'omit',
-  headers:{Accept:'application/json'},
+  headers:{Accept:'application/json',...(probe.spoof===true?{
+   // Deliberately UNTRUSTED client-supplied identity claims; never send a real identity.
+   'Cf-Access-Authenticated-User-Email':'synthetic-attacker@example.invalid',
+   'X-Forwarded-Email':'synthetic-attacker@example.invalid',
+   'X-Forwarded-User':'synthetic-attacker@example.invalid'
+  }:{})},
   signal:AbortSignal.timeout(12000)
  };
  try{
