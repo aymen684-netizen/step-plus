@@ -3,7 +3,7 @@
 **Scope:** only the offline writing preview on the `fix/writing-feedback-validation-20261025` development branch. No production deployment, user draft transfer, Cloudflare credentials or OpenAI calls.
 
 ## Verification method
-- GitHub-hosted Ubuntu runner; Node.js 22 and pinned `@playwright/test@1.64.1`.
+- GitHub-hosted Ubuntu runner; Node.js 22 and pinned `@playwright/test@1.64.1` and `@axe-core/playwright@4.14.0`.
 - Headless Chromium; app served from checked-out repository over **127.0.0.1** using `python3 -m http.server`. No production site loaded.
 - Tests block external network requests and fail if the UI calls third-party hosts.
 - Synthetic, non-personal text only.
@@ -17,6 +17,12 @@
 5. A deliberately malicious-looking `<img onerror>` / `<script>` string remained text, with no element insertion or script execution.
 6. Local word-count check operated without claiming AI correction or sending a network request.
 
+## WCAG accessibility audit (three additional tests)
+- Added `tests/browser/writing-accessibility.spec.mjs` using locally installed axe-core, without a remote CDN.
+- Scanned with WCAG 2.0/2.1/2.2 A/AA tags: initial desktop 1280px, initial mobile 375px, and expanded offline writing report at 390px.
+- **No violations were reported within the three scanned page states.** This is not a full audit of all screens, screen readers or physical devices.
+- **Latest CI: 9 tests passed / 0 failed** (six functional browser checks plus three WCAG audits): https://github.com/aymen684-netizen/step-plus/actions/runs/40225226966 .
+
 ## Actions evidence
 - **Initial CI setup FAILED**, because Playwright's web server default working directory was `tests/` and `/ai-studio.html` returned HTTP 404: https://github.com/aymen684-netizen/step-plus/actions/runs/40221516825 . This was a test infrastructure error, not an application defect.
 - Fixed server working directory to checkout root and reran: **6 passed / 0 failed**, https://github.com/aymen684-netizen/step-plus/actions/runs/40221680337 .
@@ -26,7 +32,7 @@
 ## Known limitations / remaining gates
 - Browser checks cover only the development-only offline preview. They do **not** prove live model feedback, Cloudflare Access security, quota enforcement or production site availability.
 - Test iPhone Safari and Android Chrome on actual devices or corresponding browser engines before broad public release.
-- Add automated accessibility audit, small-screen keyboard behavior, localization and RTL/LTR text wrapping checks.
+- Automated axe WCAG A/AA audit passed for the three selected states. Additional keyboard interactions, RTL/LTR assistive-technology behavior, actual screen readers and full localization still need testing.
 - Do not enable paid AI or include a real user draft in the screenshots or CI.
 - A separate security blocker remains in PR #3 / Issue #2: staging source Audience mismatch; do not deploy it.
 - This QA branch should be reviewed **against PR #5's source branch**, never merged directly into `main` or deployed.
