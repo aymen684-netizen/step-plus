@@ -1,34 +1,44 @@
-# English+ — live unauthenticated Access challenge verification
-**Date:** 2026-10-25 · **Status:** 12/12 specific anonymous GET requests challenged by Cloudflare Access, including 4 with forged synthetic identity headers. Not full security certification.
+# English+ — verified external Cloudflare Access perimeter (2026-10-25)
 
-## Method
-GitHub-hosted runner sent 12 HTTPS GET requests (6 on production, 6 on staging). No cookies, Bearer tokens, body, stored credentials, or trusted Origin. Four additional requests used **synthetic, untrusted** identity claims in request headers, never a real identity. `redirect:'manual'` prevented following login redirects. TLS verification remained enabled. The runner did not read/log response bodies, IP addresses, cookies or redirect query strings. No paid AI calls or data writes.
+**Evidence scope:** Twelve anonymous GET requests (four include untrusted synthetic spoofed identity headers) **and four anonymous, bodyless POST requests** returned verified HTTP 302 Cloudflare Access login challenges. **Not an authorization certification for real logged-in users.**
 
-## Evidence on the reviewed commit
-- Source SHA with 12 probes + 14 unit tests: `40b62c6c38e314804ed465ad3df4299878d147d8`
-- Successful CI run: https://github.com/aymen684-netizen/step-plus/actions/runs/40224954851
-- Offline classifier tests: **14 pass, 0 fail**
-- Actual GET results: each returned HTTP **302** with a verified Cloudflare Access challenge:
-  - Production: `/health`, `/api/admin/self-test` (GET only), `/api/writing/review` (GET only), `/englishplus-unexpected-route-probe`
-  - Staging: `/health`, `/api/auth/status`, `/api/writing/review` (GET only), `/englishplus-unexpected-route-probe`
-- Synthetic forged identity headers (`Cf-Access-Authenticated-User-Email`, `X-Forwarded-Email`, `X-Forwarded-User`) on production/staging `/health` and writing GET routes: **4/4 additional HTTP 302 Access challenges**.
-- Aggregate exact log text: `HTTP_DENIAL_CHECKS=12/12`.
+## Method and safety limits
 
-## Strict attribution rules
-- Success **only** for HTTP redirects to `/cdn-cgi/access/*` on the same protected Worker host or to the Cloudflare Access organization hostname retrieved from the connected account: `lingering-bread-cdac.cloudflareaccess.com`.
-- Unlike the original classifier, HTTP 401 or 403 is **not accepted as proof that Access ran**: the Worker itself might deny a request if the Access perimeter was bypassed.
-- Anonymous HTTP 2xx = security failure; 404 = bypass suspicion (not success); network/DNS/5xx = INCONCLUSIVE. Unknown or unrelated redirects also fail.
-- All twelve probes are GET-only. No POST or actual protected business operation executed.
+A GitHub-hosted Ubuntu runner requested only the exact `workers.dev` hostnames of the known English+ production and staging Workers. All requests used HTTPS/TLS, `redirect: 'manual'`, `credentials: 'omit'`, and an upper time limit. No real credentials, Access cookies, authorization tokens, learner drafts, user identifiers, request bodies or billable AI calls were sent. All POST requests **also omitted Origin and Content-Type**, preventing the current production/staging application handlers from entering a paid writing or admin flow if an Access challenge unexpectedly failed. Never infer security from an application-layer 401/403 alone.
 
-## Why earlier CI attempts failed
-Expansion first from four to eight and later eight to twelve probes required matching unit-test expectation updates. Intermediate CI runs failed as expected before the test fixtures were adjusted; only the final **14/14 unit + 12/12 external HTTP** run was accepted. This is a test maintenance issue, not evidence of an Access bypass.
+The script logs only a fixed probe ID, HTTP status and classification; it never reads/logs response bodies, authentication redirect query strings, cookies or addresses.
 
-## Controls still unverified
-- A genuinely authenticated but **unauthorized** user must be rejected in both environments; the connected account exposed only one registered Access identity (the owner).
-- Owner-session endpoint behavior, expiration/revocation, other HTTP methods (especially POST), previews, alternate hostnames, subpaths and policy precedence.
-- Live D1 quota concurrency / staging database isolation and financial caps.
-- User-data privacy and retention; production readiness for live writing AI.
-- Site behavior in Safari iOS / Chrome Android and all session transitions.
+## Verified code and GitHub Actions evidence
+
+- Executable security test SHA: `6f3eb1c3da35bc4f34b8edd4d41b8068f8379bba`
+- Successful run: https://github.com/aymen684-netizen/step-plus/actions/runs/40227150532
+- **21/21 unit tests pass** (14 GET/classifier tests and seven POST-specific guard tests).
+- **GET: 12/12 HTTP 302 challenges** to this Cloudflare account's verified login organization `lingering-bread-cdac.cloudflareaccess.com`.
+  - Production: `/health`, `/api/admin/self-test`, `/api/writing/review`, unknown-path GET; two additional GET requests with synthetic identity-spoof headers.
+  - Staging: `/health`, `/api/auth/status`, `/api/writing/review`, unknown-path GET; two additional GET requests with synthetic identity-spoof headers.
+- **POST: 4/4 HTTP 302 challenges**, no body, no cookies, no Authorization and no Origin:
+  - Production: `/api/admin/self-test` and `/api/writing/review`.
+  - Staging: `/api/writing/review` and `/api/quota/test`.
+- Job log aggregates: `HTTP_DENIAL_CHECKS=12/12`; `ANONYMOUS_POST_ACCESS_CHALLENGES=4/4`.
+- Read-only Cloudflare control plane confirmation after these tests: production active Worker version unchanged and `ENABLE_ADMIN_SELF_TEST=false`; staging version unchanged. Read-only D1 query returned **0 usage records / 0 reserved**. The tests did not change Access policies, Worker code/deployments, secrets, D1 records, GitHub main or the production frontend.
+
+## False-positive safeguards
+
+- An accepted redirect must point over HTTPS to `/cdn-cgi/access/*` at **the specific Cloudflare Access organization host** retrieved from the actual account, or at the original protected Worker hostname.
+- HTTP 2xx on an anonymous protected path fails the gate.
+- HTTP 401/403, 404, unrelated redirects, transport/DNS problems and 5xx **do not pass** an Access-layer verification. These statuses may be application denials, missing paths or network failures.
+- A redirected login challenge proves the tested anonymous request was intercepted, **not** that an authenticated-but-unauthorized user is denied or that all hostnames and methods are protected.
+- The POST tests send **no request body or credentials**, and therefore cannot prove whether the full authenticated POST workflow is secure.
+
+## Unverified controls / blockers
+
+1. A genuinely signed-in **unauthorized** identity must be denied; the Access user list currently contains only the owner. No test identity was created.
+2. A real logged-in owner session and expiration/revocation paths, and authenticated writing POST behavior remain unverified.
+3. Alternate hostnames/previews, route precedence and all remaining HTTP methods are not exhaustively covered.
+4. Staging source has an incorrect Audience and differs from the currently deployed staging Worker. Draft **PR #3** remains blocked with three failing tests.
+5. Live staging Cloudflare D1 concurrent quota reservation and isolation (beyond local SQLite and read-only D1 SQL EXPLAIN), monetary budget controls, privacy retention and provider approval are open.
+6. Actual iPhone Safari and Android Chrome are not covered by this perimeter test.
 
 ## Decision
-**Accept this specific anonymous GET perimeter evidence, including synthetic-header spoofing checks. Do not mark full security approval.** Keep staging source mismatch PR #3 open, writing AI disabled and Issue #7's Go/No-Go gate closed for paid calls. No production Worker, Access policy, secret, route, D1 or main branch modification was made by these probes.
+
+**Accept the 16 narrow, explicitly scoped anonymous Access challenges and 21 unit test results.** Preserve **No-Go** for billable AI and public release until remaining gates in [Issue #7](https://github.com/aymen684-netizen/step-plus/issues/7) are verified and signed off. This test and its documentation are on a development branch only.
