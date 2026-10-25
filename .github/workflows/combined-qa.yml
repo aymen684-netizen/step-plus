@@ -1,0 +1,32 @@
+name: English+ combined QA regression
+
+on:
+  push:
+    branches:
+      - qa/writing-regression-matrix-20261025
+    paths:
+      - 'backend/**'
+      - 'tests/**'
+      - '.github/workflows/combined-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  combined-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Worker syntax
+        run: |
+          node --check backend/worker.js
+          node --check backend/quota-test-worker.mjs
+      - name: All offline quota, production guard, writing feedback tests
+        run: node --test tests/*.test.mjs
