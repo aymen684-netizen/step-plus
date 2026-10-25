@@ -6,22 +6,22 @@ const url='https://english-plus-ai.aymen684.workers.dev/health';
 const evaluate=(status,location)=>classifyUnauthenticated({status,location,requestUrl:url});
 
 test('read-only target list uses GET-safe routes and known Workers',()=>{
- assert.equal(PROBES.length,4);
+ assert.equal(PROBES.length,8);
  const names=new Set(PROBES.map(x=>x.id));
  assert.equal(names.size,4);
  for(const target of PROBES){
   const p=new URL(target.url);
   assert.equal(p.protocol,'https:');
   assert.ok(['english-plus-ai.aymen684.workers.dev','english-plus-ai-staging.aymen684.workers.dev'].includes(p.hostname));
-  assert.ok(['/health','/api/auth/status','/api/admin/self-test'].includes(p.pathname));
+  assert.ok(['/health','/api/auth/status','/api/admin/self-test','/api/writing/review','/englishplus-unexpected-route-probe'].includes(p.pathname));
   assert.ok(!p.search);
  }
 });
 
-test('401 or 403 counts as HTTP denial but not verified Access attribution',()=>{
+test('401 or 403 is a denial but NOT proof that Access ran',()=>{
  for(const status of [401,403]){
   const x=evaluate(status,null);
-  assert.equal(x.accepted,true);
+  assert.equal(x.accepted,false);
   assert.equal(x.outcome,'HTTP_DENIED_NOT_ACCESS_ATTRIBUTED');
  }
 });
@@ -107,4 +107,14 @@ test('an unauthenticated 200 returned from the live probe is flagged as a failur
  const result=await probeOne({id:'test',url},{fetchImpl:async()=>new Response('{}',{status:200})});
  assert.equal(result.accepted,false);
  assert.equal(result.outcome,'UNAUTHENTICATED_2XX_SECURITY_FAILURE');
+});
+
+
+test('expanded route set includes both writing and unknown-path probes',()=>{
+ for(const host of ['english-plus-ai.aymen684.workers.dev','english-plus-ai-staging.aymen684.workers.dev']){
+  const filtered=PROBES.filter(x=>new URL(x.url).hostname===host);
+  assert.ok(filtered.some(x=>new URL(x.url).pathname==='/api/writing/review'));
+  assert.ok(filtered.some(x=>new URL(x.url).pathname==='/englishplus-unexpected-route-probe'));
+  assert.ok(filtered.every(x=>new URL(x.url).search===''));
+ }
 });
