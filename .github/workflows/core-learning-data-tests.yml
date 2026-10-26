@@ -1,0 +1,36 @@
+name: English+ core learning deterministic tests
+on:
+  push:
+    branches: [qa/core-learning-e2e-20261026]
+    paths:
+      - 'index.html'
+      - 'academy.html'
+      - 'reading-tests.html'
+      - 'tests/core-learning-data.test.mjs'
+      - '.github/workflows/core-learning-data-tests.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'academy.html'
+      - 'reading-tests.html'
+      - 'tests/core-learning-data.test.mjs'
+      - '.github/workflows/core-learning-data-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deterministic-learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify test syntax
+        run: node --check tests/core-learning-data.test.mjs
+      - name: Run real scoring source with synthetic answers in isolated Node VM
+        run: node --test tests/core-learning-data.test.mjs
