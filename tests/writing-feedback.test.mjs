@@ -20,7 +20,7 @@ const providerResponse=(fb)=>new Response(JSON.stringify({output:[{type:'message
 function makeHarness(provider){
  const handlers=[],calls=[];
  const scope={
-  URL,Response,AbortSignal,
+  URL,Response,AbortSignal,TextDecoder,
   ADMIN_TEST_TOKEN:TOKEN,
   OPENAI_API_KEY:'synthetic-ci-key-not-a-secret',
   ENABLE_WRITING_AI:'true',
@@ -134,4 +134,24 @@ test('malformed output items cannot corrupt an otherwise valid rubric',async()=>
  const r=await x.review();
  assert.equal(r.status,200);
  assert.equal((await r.json()).feedback.scores.coherence,85);
+});
+
+test('rejects Unicode request exceeding 12000 UTF-8 bytes before provider call',async()=>{
+ const draft='😀'.repeat(3000);
+ const raw=JSON.stringify({draft,stage:'paragraph',level:'B1'});
+ assert.equal(draft.length,6000);
+ assert.ok(raw.length<12000,'the old string-length guard would allow this body');
+ assert.ok(new TextEncoder().encode(raw).byteLength>12000);
+ const x=harnessFor(VALID_FEEDBACK);
+ const r=await x.review(draft);
+ assert.equal(r.status,413);
+ assert.equal((await r.json()).error,'too_large');
+ assert.equal(x.calls.length,0,'oversized input must not trigger a paid provider request');
+});
+
+test('accepts valid Unicode text below UTF-8 byte cap',async()=>{
+ const x=harnessFor(VALID_FEEDBACK);
+ const r=await x.review('English practice improves communication. '+ 'é'.repeat(100));
+ assert.equal(r.status,200);
+ assert.equal(x.calls.length,1);
 });
