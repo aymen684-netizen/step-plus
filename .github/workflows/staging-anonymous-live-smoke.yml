@@ -1,0 +1,30 @@
+name: English+ staging anonymous Access perimeter
+on:
+  push:
+    branches: [fix/staging-access-aud-tests-20261024]
+    paths:
+      - 'tests/staging-anonymous-live-smoke.mjs'
+      - '.github/workflows/staging-anonymous-live-smoke.yml'
+  pull_request:
+    paths:
+      - 'tests/staging-anonymous-live-smoke.mjs'
+      - '.github/workflows/staging-anonymous-live-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-staging-denial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify probe syntax
+        run: node --check tests/staging-anonymous-live-smoke.mjs
+      - name: Test six anonymous HTTP challenges without body, cookies or credentials
+        run: node tests/staging-anonymous-live-smoke.mjs
