@@ -1,0 +1,35 @@
+name: English+ STEP content quarantine regression
+on:
+  push:
+    branches: [qa/step-hajj-quarantine-20261026]
+    paths:
+      - 'academy.html'
+      - 'tests/step-hajj-quarantine.test.mjs'
+      - 'tests/step-session-results.test.mjs'
+      - '.github/workflows/step-content-integrity.yml'
+  pull_request:
+    paths:
+      - 'academy.html'
+      - 'tests/step-hajj-quarantine.test.mjs'
+      - 'tests/step-session-results.test.mjs'
+      - '.github/workflows/step-content-integrity.yml'
+permissions:
+  contents: read
+jobs:
+  no-unverified-scoring:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify Node test syntax
+        run: |
+          node --check tests/step-hajj-quarantine.test.mjs
+          node --check tests/step-session-results.test.mjs
+      - name: Verify no mismatched chart answer reaches scored STEP modes
+        run: node --test tests/step-hajj-quarantine.test.mjs tests/step-session-results.test.mjs
