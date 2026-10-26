@@ -8,6 +8,7 @@ on:
       - 'backend/worker-staging.js'
       - 'tests/quota.test.mjs'
       - 'tests/staging-access.test.mjs'
+      - 'tests/staging-runtime-contract.test.mjs'
       - '.github/workflows/quota-tests.yml'
 jobs:
   quota-tests:
