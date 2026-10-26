@@ -1,0 +1,60 @@
+name: English+ combined writing contract and browser QA
+on:
+  push:
+    branches: [qa/writing-integration-20261026]
+    paths:
+      - 'ai-studio.html'
+      - 'backend/worker.js'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/**'
+      - '.github/workflows/writing-browser-smoke.yml'
+  pull_request:
+    paths:
+      - 'ai-studio.html'
+      - 'backend/worker.js'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/**'
+      - '.github/workflows/writing-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  combined-writing-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify writing and browser test syntax
+        run: |
+          node --check backend/worker.js
+          node --check src/writing-feedback-renderer.mjs
+          node --check tests/writing-feedback.test.mjs
+          node --check tests/writing-renderer.test.mjs
+          node --check tests/writing-smoke-cases.test.mjs
+          node --check tests/playwright.config.mjs
+          node --check tests/browser/writing-ui.spec.mjs
+          node --check tests/browser/writing-accessibility.spec.mjs
+      - name: Writing backend contract and safe renderer (offline)
+        run: node --test tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs tests/writing-smoke-cases.test.mjs
+      - name: Install pinned Playwright and local axe runner
+        run: npm install --no-save @playwright/test@1.64.1 @axe-core/playwright@4.14.0
+      - name: Install isolated headless Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Browser E2E and scoped WCAG audit (local HTTP only)
+        run: npx playwright test -c tests/playwright.config.mjs
+      - name: Upload synthetic-only mobile preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: english-plus-integration-synthetic-screenshots
+          path: tests/browser-results/*.png
+          if-no-files-found: ignore
+          retention-days: 7
