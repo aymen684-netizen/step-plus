@@ -35,3 +35,25 @@
 Stop and rollback staging if anonymous or unauthorized callers receive protected HTTP 2xx, if paid AI becomes enabled, or if unexpected D1 changes/secret exposure appear. The prior staging version is `5c7d590e-26b4-4b50-b01c-9aac9746988b`; rollback requires a separately verified deployment at 100% and a follow-up anonymous perimeter test. The production Worker was not part of this rollout.
 
 **No-Go remains in force for public launch or paid provider integration until the owner/non-owner live-session, quota-isolation, cost and privacy gates are complete.**
+
+## Additional read-only verification: Access policy evaluation, exposure and D1 schema
+
+These checks did **not** authenticate a browser session and did **not** issue database writes. They are not substitutes for QA-026-27, QA-026-28, QA-026-29 or QA-026-30.
+
+| ID | Date | Inputs | Expected result | Actual result | Status | Evidence |
+|---|---|---|---|---|---|---|
+| QA-026-33 | 2026-10-26 | Cloudflare Access user-directory read, page 1/1 | Determine whether separate signed-in non-owner test identity already exists | Directory returned **one** recorded owner identity and **zero** other identities; no identity created | ناجح (directory inventory only) | Cloudflare API GET `/accounts/{account_id}/access/users`, HTTP 200, total_count=1 |
+| QA-026-34 | 2026-10-26 | Cloudflare Access app's **policy evaluation** for the existing owner user ID, queried internally | Matching owner-only allow policy reports success | GET `user_policy_checks?user_id=...` returned HTTP 200, app status `success`, owner-only allow policy status `success` | ناجح (policy evaluation only) | Cloudflare Access policy-check API; no user UUID, session token, email or redirect query in logs |
+| QA-026-35 | 2026-10-26 | Enumerate zones, custom Worker domains, staging preview settings and Access apps | Identify alternative reachable routes requiring protection | No account zones or custom Worker domains discovered; staging `previews_enabled=false`, two known workers.dev Access apps exist | ناجح (configuration inventory only) | Cloudflare API GET `/zones`, `/workers/domains`, `/workers/scripts/{name}/subdomain`, `/access/apps` |
+| QA-026-36 | 2026-10-26 | Read-only D1 `PRAGMA table_info(usage_daily)`, `PRAGMA index_list(usage_daily)`, `sqlite_master` and aggregate count | Primary key `(day,owner,kind)`, expected CHECK constraints and valid unique index; no accidental records | Schema contains four expected columns, a unique PK index and the expected CHECK constraints; `0 rows/0 used` | ناجح (schema/read-only only) | Cloudflare D1 query API HTTP 200, all inner query `success:true`; no SQL writes |
+| QA-026-37 | 2026-10-26 | Attempt real authenticated non-owner HTTP request | Actual signed-in non-owner is denied and no protected response is revealed | **Not executed**: only the owner appears in current Access user directory | معطل | No alternate authenticated test identity available |
+| QA-026-38 | 2026-10-26 | Compare active Staging and production Worker deployment IDs after read-only checks | Both unchanged | Staging deployment `12067d70-1af8-4c1c-a1ce-ec6b86a51367` (v6), production `223df417-640a-4904-a37c-fa5be0b93364` | ناجح | Cloudflare deployment API HTTP 200 |
+
+### Security interpretation
+
+- A successful **Cloudflare policy evaluation** proves the policy tester permits the recorded owner based on their most recent Access identity. It does **not** prove authenticated HTTPS response handling, cookie/session expiration, session revocation, or the actual owner POST 503 contract. Leave QA-026-27 and QA-026-29 as `لم يُختبر`.
+- Access user inventory is not a simulated non-owner denial. A test with a second **real signed-in** and otherwise unauthorized identity remains `معطل` (QA-026-28 / QA-026-37).
+- No custom domains/zones were found in this connected account, but configuration inventory is not exhaustive proof against every external entrypoint or future routing change. Keep route monitoring as an ongoing acceptance control.
+- The D1 schema and CHECK constraints support the intended quota design; the SQL helper and local SQLite concurrency tests are still **not** proof of real D1 atomicity. Leave QA-026-30 as `معطل`.
+- None of these checks authorize a paid AI call, a production change, or synthetic writes against live D1. All original stop/rollback rules remain in force.
+
