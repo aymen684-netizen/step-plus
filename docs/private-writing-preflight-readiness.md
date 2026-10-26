@@ -40,3 +40,16 @@ Using the Cloudflare connection to `english-plus-ai-quotas`, I ran a **read-only
 ## Known open issues
 - Staging source drift and the incorrect Access Audience in `backend/worker-staging.js`: see [Issue #2](https://github.com/aymen684-netizen/step-plus/issues/2) and [draft PR #3](https://github.com/aymen684-netizen/step-plus/pull/3); this branch does not change either.
 - [Draft PR #5](https://github.com/aymen684-netizen/step-plus/pull/5) holds the safer backend feedback validation and offline UI preview; this branch does not enable its features in production.
+
+## Follow-up QA — 26 October 2026
+
+**Latest verified PR HEAD test commit before this documentation-only update:** `2bc2f4da4ad7434afef5ebc023fad138bf4479b5`.
+
+- **36/36 Node tests passed, 0 failed**, including three added UTF-8 cases: oversized 3,000-emoji draft is rejected with HTTP 413 before a D1 reservation; invalid byte sequence returns HTTP 400 before reserving; valid multibyte text below 12,000 bytes succeeds in the synthetic provider-free dry-run without draft echo.
+- **5/5 isolated local SQLite concurrency tests passed** using the exact SQL extracted from `backend/daily-quotas.js`. This is **not** a live Cloudflare D1 concurrency/transaction test.
+- [CI run 40353816871](https://github.com/aymen684-netizen/step-plus/actions/runs/40353816871) and [CI run 40353826943](https://github.com/aymen684-netizen/step-plus/actions/runs/40353826943) both completed successfully on the tested commit. Historical 33/33 runs above remain valid only for their earlier commits.
+- Read-only current Cloudflare D1 schema inspection confirmed the `usage_daily` table's primary key `(day,owner,kind)`, CHECK constraints and zero usage records. No real reservations were made.
+- The separate staging Worker was reconciled to its own Access Audience and deployed as **version 6** in PR #3, with 6/6 anonymous HTTP challenges after rollout. **This standalone dry-run candidate has not been deployed to that Worker**.
+- Cloudflare's Access identity documentation explicitly lists `user_uuid`, but the exact `ctx.access.getIdentity()` object and signed-in owner behavior **have not been validated in live staging**. Cloudflare's policy tester returned `success` for the recorded owner, which is a narrower proof.
+- The connected Access user directory has only the owner identity, so signed-in unauthorized-user denial is still **blocked** until a separate real test identity is available.
+- Real D1 concurrent reservations, paid AI budgets/kill switch, privacy/retention and actual-device accessibility remain **No-Go gates**. No paid request or production change was performed.
