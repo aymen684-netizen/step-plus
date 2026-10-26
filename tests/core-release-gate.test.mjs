@@ -50,7 +50,7 @@ test('all static primary navigation links point to existing repository files',()
    assert.ok(resolved.startsWith(root),name+' must not escape repository root');
    assert.ok(existsSync(resolved),name+' unresolved path '+local);
   }
- });
+ }
 });
 test('deploy workflow publishes from main push only, never from a PR',()=>{
  const deploy=read('.github/workflows/deploy.yml');
