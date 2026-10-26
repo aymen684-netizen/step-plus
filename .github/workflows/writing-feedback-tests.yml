@@ -1,0 +1,53 @@
+name: English+ writing feedback contract
+
+on:
+  push:
+    branches:
+      - fix/writing-feedback-validation-20261025
+      - feature/english-ai-studio
+    paths:
+      - 'backend/worker.js'
+      - 'ai-studio.html'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/writing-renderer.test.mjs'
+      - 'tests/writing-feedback.test.mjs'
+      - 'tests/writing-smoke-cases.test.mjs'
+      - 'tests/fixtures/writing-smoke-cases.json'
+      - 'docs/writing-test-runbook-2026-10-30.md'
+      - '.github/workflows/writing-feedback-tests.yml'
+  pull_request:
+    paths:
+      - 'backend/worker.js'
+      - 'ai-studio.html'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/writing-renderer.test.mjs'
+      - 'tests/writing-feedback.test.mjs'
+      - 'tests/writing-smoke-cases.test.mjs'
+      - 'tests/fixtures/writing-smoke-cases.json'
+      - 'docs/writing-test-runbook-2026-10-30.md'
+      - '.github/workflows/writing-feedback-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  writing-feedback-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Check Worker and test syntax
+        run: |
+          node --check backend/worker.js
+          node --check tests/writing-feedback.test.mjs
+          node --check src/writing-feedback-renderer.mjs
+          node --check tests/writing-renderer.test.mjs
+          node --check tests/writing-smoke-cases.test.mjs
+      - name: Test AI writing response contract (offline)
+        run: node --test tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs tests/writing-smoke-cases.test.mjs
