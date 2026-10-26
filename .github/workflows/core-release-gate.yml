@@ -35,3 +35,5 @@ jobs:
         run: node --test tests/core-release-gate.test.mjs
       - name: Exercise guarded quota endpoints with synthetic database
         run: node --test tests/quota.test.mjs
+      - name: Verify real Worker fail-closed production behavior without credentials
+        run: node --test tests/production-guards.test.mjs
