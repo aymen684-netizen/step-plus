@@ -33,7 +33,7 @@ test('desktop: offline report renders scores without reading the draft',async({p
  expect(Math.abs(positions[0]-positions[1])).toBeGreaterThan(80);
 });
 
-for(const width of [390,375]){
+for(const width of [390,375,320]){
  test('mobile '+width+'px: preview is reachable and no horizontal overflow',async({page},testInfo)=>{
   await page.setViewportSize({width,height:844});
   const external=await openLocalStudio(page);
@@ -50,6 +50,22 @@ for(const width of [390,375]){
   await page.screenshot({path:'tests/browser-results/'+testInfo.project.name+'-mobile-'+width+'.png',fullPage:true});
  });
 }
+
+test('tablet 768px: synthetic preview remains usable with two columns and no overflow',async({page})=>{
+ await page.setViewportSize({width:768,height:1024});
+ const outside=await openLocalStudio(page);
+ await previewButton(page).click();
+ await expect(preview(page)).toContainText('تقرير تعليمي');
+ const metrics=await page.evaluate(()=>({
+  viewport:document.documentElement.clientWidth,
+  scrollWidth:document.documentElement.scrollWidth
+ }));
+ expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewport+1);
+ const x=await page.locator('.cards > .card').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().x));
+ expect(x).toHaveLength(2);
+ expect(Math.abs(x[0]-x[1])).toBeGreaterThan(80);
+ expect(outside).toEqual([]);
+});
 
 test('keyboard: preview works from Enter activation',async({page})=>{
  await openLocalStudio(page);

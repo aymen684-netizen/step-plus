@@ -46,3 +46,17 @@ test('mobile 390px: expanded synthetic writing feedback has no detectable WCAG A
  await audit(page);
  expect(outside).toEqual([]);
 });
+
+test('small mobile 320px: expanded offline preview has no detectable WCAG A/AA violations',async({page})=>{
+ const outside=await ready(page,320);
+ await page.getByRole('button',{name:'معاينة تقرير تصحيح تجريبي'}).click();
+ await expect(page.locator('#feedbackPreview')).toContainText('تقرير تعليمي');
+ await audit(page);
+ expect(outside).toEqual([]);
+});
+
+test('tablet 768px: initial writing studio has no detectable WCAG A/AA violations',async({page})=>{
+ const outside=await ready(page,768);
+ await audit(page);
+ expect(outside).toEqual([]);
+});
