@@ -1,0 +1,57 @@
+name: English+ core learning browser acceptance QA
+
+on:
+  push:
+    branches: [qa/core-learning-e2e-20261026]
+    paths:
+      - 'tests/browser/core-learning.spec.mjs'
+      - '.github/workflows/core-learning-smoke.yml'
+      - 'index.html'
+      - 'academy.html'
+      - 'reading-tests.html'
+      - 'tests/playwright.config.mjs'
+  pull_request:
+    paths:
+      - 'tests/browser/core-learning.spec.mjs'
+      - '.github/workflows/core-learning-smoke.yml'
+      - 'index.html'
+      - 'academy.html'
+      - 'reading-tests.html'
+      - 'tests/playwright.config.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  learning-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Check new browser suite and its config syntax
+        run: |
+          node --check tests/browser/core-learning.spec.mjs
+          node --check tests/playwright.config.mjs
+      - name: Revalidate current writing feedback contracts offline
+        run: node --test tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs tests/writing-smoke-cases.test.mjs
+      - name: Install pinned local browser QA runner
+        run: npm install --no-save @playwright/test@1.64.1 @axe-core/playwright@4.14.0
+      - name: Install isolated Chromium and WebKit headless browsers
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run core learning plus writing browser regression locally
+        run: npx playwright test -c tests/playwright.config.mjs
+      - name: Upload synthetic-only screenshots from writing smoke suite
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: english-plus-core-learning-qa-synthetic-images
+          path: tests/browser-results/*.png
+          if-no-files-found: ignore
+          retention-days: 7
