@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 // All tests run against Playwright's localhost webServer. They never authenticate,
 // send real learner content, call Cloudflare, or contact OpenAI.
@@ -185,3 +186,38 @@ for(const path of ['/index.html','/academy.html','/reading-tests.html']){
   expect(outside).toEqual([]);
  });
 }
+
+const a11yTags=['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'];
+async function auditLearningState(page){
+ const results=await new AxeBuilder({page}).withTags(a11yTags).analyze();
+ const violations=results.violations.map(v=>({
+  id:v.id,impact:v.impact,targets:v.nodes.map(n=>n.target.join(' ')).slice(0,5)
+ }));
+ expect(violations,'automated WCAG A/AA audit: '+JSON.stringify(violations)).toEqual([]);
+}
+
+test('English+ mobile placement: automated WCAG A/AA audit of question state',async({page})=>{
+ await page.setViewportSize({width:320,height:700});
+ const outside=await visit(page,'/index.html');
+ await page.getByRole('button',{name:'تحديد المستوى',exact:true}).click();
+ await page.getByRole('button',{name:'ابدأ اختبار التقييم'}).click();
+ await auditLearningState(page);
+ expect(outside).toEqual([]);
+});
+
+test('STEP academy mobile diagnostic: automated WCAG A/AA audit of question state',async({page})=>{
+ await page.setViewportSize({width:375,height:844});
+ const outside=await visit(page,'/academy.html');
+ await page.getByRole('button',{name:'ابدأ تحديد المستوى'}).click();
+ await auditLearningState(page);
+ expect(outside).toEqual([]);
+});
+
+test('STEP reading review-pending question: automated WCAG A/AA audit of question state',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ const outside=await visit(page,'/reading-tests.html');
+ await page.locator('#groups button').filter({hasText:'A Graph Regarding Hajj Pilgrims'}).first().click();
+ await page.locator('#options button.choice').first().click();
+ await auditLearningState(page);
+ expect(outside).toEqual([]);
+});
