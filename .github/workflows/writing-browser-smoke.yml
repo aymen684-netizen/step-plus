@@ -1,0 +1,50 @@
+name: English+ real browser writing UI smoke
+
+on:
+  push:
+    branches:
+      - qa/writing-browser-e2e-20261025
+    paths:
+      - 'ai-studio.html'
+      - 'src/writing-feedback-renderer.mjs'
+      - 'tests/browser/**'
+      - 'tests/playwright.config.mjs'
+      - 'docs/browser-writing-ui-e2e-20261025.md'
+      - '.github/workflows/writing-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install fixed Playwright test runner
+        run: npm install --no-save @playwright/test@1.64.1 @axe-core/playwright@4.14.0
+      - name: Install isolated headless Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify frontend and E2E syntax
+        run: |
+          node --check src/writing-feedback-renderer.mjs
+          node --check tests/playwright.config.mjs
+          node --check tests/browser/writing-ui.spec.mjs
+          node --check tests/browser/writing-accessibility.spec.mjs
+      - name: Browser E2E Chromium and WebKit synthetic preview (local HTTP only)
+        run: npx playwright test -c tests/playwright.config.mjs
+      - name: Upload synthetic-only mobile preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: english-plus-browser-smoke-images
+          path: tests/browser-results/*.png
+          if-no-files-found: ignore
+          retention-days: 7
