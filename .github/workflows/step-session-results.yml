@@ -1,0 +1,32 @@
+name: English+ STEP result finalization regression
+on:
+  push:
+    branches: [fix/step-session-results-20261026, feature/english-ai-studio]
+    paths:
+      - 'academy.html'
+      - 'tests/step-session-results.test.mjs'
+      - '.github/workflows/step-session-results.yml'
+  pull_request:
+    paths:
+      - 'academy.html'
+      - 'tests/step-session-results.test.mjs'
+      - '.github/workflows/step-session-results.yml'
+permissions:
+  contents: read
+jobs:
+  step-results:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Validate source and tests
+        run: |
+          node --check tests/step-session-results.test.mjs
+      - name: Run actual STEP finish function against diagnostic and mock synthetic answers
+        run: node --test tests/step-session-results.test.mjs
