@@ -1,7 +1,7 @@
 // English+ staged API. Authentication proof via Cloudflare ctx.access.
 // Paid AI deliberately disabled pending quota and billing controls.
 const OWNER='aymen684@gmail.com';
-const ACCESS_AUD='0dbb2f48add6b4973115ffb89fb3c1e98aa7bdc5726c13272211fbdb1b3d6a1f';
+const ACCESS_AUD='ae04af66e40b398431006c55c4d2c282b6decf81afffc6f93d1a5ffbddca8d80';
 const ALLOWED_ORIGIN='https://aymen684-netizen.github.io';
 const respond=(data,status=200,origin='')=>new Response(JSON.stringify(data),{
  status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin',
