@@ -238,3 +238,42 @@ test('source cannot call OpenAI or network and does not log drafts',()=>{
  assert.doesNotMatch(source,/\b(?:await|return)\s+fetch\s*\(|globalThis\.fetch\s*\(|api\.openai\.com|console\.|\.textContent\s*=/);
  assert.doesNotMatch(source,/\bOPENAI_API_KEY\b|\bADMIN_TEST_TOKEN\b/);
 });
+
+test('rejects oversized emoji draft by UTF-8 bytes before reserving D1 quota',async()=>{
+ const db=mockDB();
+ const draft='😀'.repeat(3000);
+ const raw=JSON.stringify({...goodBody,draft});
+ assert.equal(draft.length,6000,'draft is within code-unit count but large in bytes');
+ assert.ok(raw.length<12000,'naive JavaScript string-length check would miss this body');
+ assert.ok(new TextEncoder().encode(raw).byteLength>12000);
+ const request=req('/api/writing/preflight',{body:raw});
+ assert.equal(request.headers.get('content-length'),null);
+ const r=await response(env(db),ctx(),request);
+ assert.equal(r.status,413);
+ assert.equal((await r.json()).error,'too_large');
+ assert.equal(db.history.length,0,'oversized input must not reserve or bill quota');
+});
+
+test('rejects malformed UTF-8 body before reserving quota',async()=>{
+ const db=mockDB();
+ const request=new Request('https://staging.example/api/writing/preflight',{
+  method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/json'},
+  body:new Uint8Array([0x7b,0x22,0x64,0x72,0x61,0x66,0x74,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d])
+ });
+ const r=await response(env(db),ctx(),request);
+ assert.equal(r.status,400);
+ assert.equal((await r.json()).error,'invalid_json');
+ assert.equal(db.history.length,0);
+});
+
+test('accepts valid multibyte UTF-8 below cap without network or draft echo',async()=>{
+ const db=mockDB();
+ const draft='Learning English through regular practice is valuable. '+'é'.repeat(100);
+ const r=await response(env(db),ctx(),req('/api/writing/preflight',{body:{...goodBody,draft}}));
+ assert.equal(r.status,200);
+ const data=await r.json();
+ assert.equal(data.paidAiEnabled,false);
+ assert.equal(data.dryRun,true);
+ assert.equal(JSON.stringify(data).includes(draft),false);
+ assert.equal(db.history.length,1);
+});
