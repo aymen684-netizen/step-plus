@@ -1,0 +1,39 @@
+name: English+ core source and release safety gate
+on:
+  push:
+    branches: [ci/english-plus-core-qa-gate-20261026, feature/english-ai-studio]
+  pull_request:
+    branches: [feature/english-ai-studio, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: english-plus-core-qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-release-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify guard and Worker JavaScript syntax
+        run: |
+          node --check tests/core-release-gate.test.mjs
+          node --check backend/worker.js
+          node --check backend/worker-staging.js
+          node --check backend/quota-test-worker.mjs
+      - name: Validate core HTML, links, secrets patterns and deployment workflow
+        run: node --test tests/core-release-gate.test.mjs
+      - name: Exercise guarded quota endpoints with synthetic database
+        run: node --test tests/quota.test.mjs
+      - name: Verify real Worker fail-closed production behavior without credentials
+        run: node --test tests/production-guards.test.mjs
