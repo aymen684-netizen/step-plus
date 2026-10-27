@@ -1,0 +1,58 @@
+name: English+ integrated core and STEP quality acceptance
+on:
+  push:
+    branches: [qa/core-release-combined-20261027]
+  pull_request:
+    branches: [qa/step-hajj-quarantine-20261026]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-integrated-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify exact combined application and test syntax
+        run: |
+          node --check backend/worker.js
+          node --check backend/worker-staging.js
+          node --check tests/core-release-gate.test.mjs
+          node --check tests/production-guards.test.mjs
+          node --check tests/core-learning-data.test.mjs
+          node --check tests/quota.test.mjs
+          node --check tests/step-session-results.test.mjs
+          node --check tests/step-hajj-quarantine.test.mjs
+      - name: Run all core offline safety and educational integrity checks on this checkout
+        run: |
+          node --test             tests/core-release-gate.test.mjs             tests/quota.test.mjs             tests/production-guards.test.mjs             tests/core-learning-data.test.mjs             tests/step-session-results.test.mjs             tests/step-hajj-quarantine.test.mjs
+
+  actual-chrome-content-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify Chrome available and test syntax
+        run: |
+          command -v google-chrome
+          google-chrome --version
+          node --check tests/browser/step-hajj.spec.mjs
+          node --check tests/step-hajj-playwright.config.mjs
+      - name: Install pinned test harness only (no browser installation)
+        run: npm install --no-save @playwright/test@1.64.1
+      - name: Check suspensions, scoring and historical data in local Chrome
+        run: npx playwright test -c tests/step-hajj-playwright.config.mjs
