@@ -20,6 +20,8 @@ function runtime(overrides = {}) {
     URL,
     Response,
     AbortSignal,
+    TextDecoder,
+    TextEncoder,
     addEventListener(type, callback) {
       if (type === 'fetch') handlers.push(callback);
     },
