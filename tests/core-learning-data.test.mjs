@@ -161,3 +161,49 @@ for(const [name,html] of [['English+ home',homepage],['STEP academy',academy],['
   assert.match(html,/<h1\b/i);
  });
 }
+
+function syntheticPlacementAnswers(correctIds,all=true){
+ const ids=placementIds();
+ const set=new Set(correctIds);
+ return Object.fromEntries(ids.filter(i=>all||set.has(i)).map(i=>[
+  i,set.has(i)?generalQ[i][4]:(generalQ[i][4]+1)%generalQ[i][3].length
+ ]));
+}
+
+test('A2 threshold accepts exactly four correct of ten and stores 40%',()=>{
+ const ids=placementIds();
+ const {state}=simulateGeneral(syntheticPlacementAnswers(ids.slice(0,4)));
+ assert.equal(state.placement.level,'A2');
+ assert.equal(state.placement.score,40);
+ assert.equal(state.results.at(-1).correct,4);
+});
+
+test('B1 threshold accepts six correct nonadvanced questions at 60%',()=>{
+ const ids=placementIds();
+ const {state}=simulateGeneral(syntheticPlacementAnswers(ids.slice(0,6)));
+ assert.equal(state.placement.level,'B1');
+ assert.equal(state.placement.score,60);
+});
+
+test('B2 requires an advanced correct answer at seven correct of ten',()=>{
+ const ids=placementIds();
+ const {state}=simulateGeneral(syntheticPlacementAnswers(ids.slice(0,7)));
+ assert.equal(state.placement.level,'B2');
+ assert.equal(state.placement.score,70);
+});
+
+test('C1 threshold accepts nine correct with several advanced correct answers',()=>{
+ const ids=placementIds();
+ const {state}=simulateGeneral(syntheticPlacementAnswers(ids.slice(0,9)));
+ assert.equal(state.placement.level,'C1');
+ assert.equal(state.placement.score,90);
+});
+
+test('C1 is never assigned when a partial set has only one advanced correct',()=>{
+ const ids=placementIds();
+ const partial=[ids[0],ids[6]];
+ const {state}=simulateGeneral(syntheticPlacementAnswers(partial,false));
+ assert.equal(state.placement.score,100);
+ assert.equal(state.placement.level,'B2');
+ assert.equal(state.results.at(-1).total,2);
+});
