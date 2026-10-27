@@ -1,0 +1,62 @@
+name: English+ unified writing STEP security browser QA
+on:
+  push:
+    branches: [qa/english-plus-full-acceptance-20261027]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  all-offline-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Validate actual Worker and test syntax
+        run: |
+          node --check backend/worker.js
+          node --check backend/worker-staging.js
+          node --check tests/core-release-gate.test.mjs
+          node --check tests/production-guards.test.mjs
+          node --check tests/core-learning-data.test.mjs
+          node --check tests/step-session-results.test.mjs
+          node --check tests/step-hajj-quarantine.test.mjs
+          node --check tests/writing-feedback.test.mjs
+          node --check tests/writing-renderer.test.mjs
+          node --check tests/writing-smoke-cases.test.mjs
+      - name: Run synthetic writing STEP Access production guards and content checks
+        run: |
+          node --test tests/core-release-gate.test.mjs tests/quota.test.mjs tests/production-guards.test.mjs tests/core-learning-data.test.mjs tests/step-session-results.test.mjs tests/step-hajj-quarantine.test.mjs tests/writing-feedback.test.mjs tests/writing-renderer.test.mjs tests/writing-smoke-cases.test.mjs
+
+  browser-chrome-and-webkit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify installed Chrome and browser test syntax
+        run: |
+          google-chrome --version
+          node --check tests/playwright-integrated.config.mjs
+          node --check tests/browser/core-learning.spec.mjs
+          node --check tests/browser/writing-ui.spec.mjs
+          node --check tests/browser/writing-accessibility.spec.mjs
+          node --check tests/browser/step-hajj.spec.mjs
+      - name: Install pinned isolated browser test tools
+        run: npm install --no-save @playwright/test@1.64.1 @axe-core/playwright@4.14.0
+      - name: Install WebKit and test runner OS dependencies
+        run: npx playwright install --with-deps webkit
+      - name: Run 2 browser engines, localhost only, including scoped accessibility
+        run: npx playwright test -c tests/playwright-integrated.config.mjs
