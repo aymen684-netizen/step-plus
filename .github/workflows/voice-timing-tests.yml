@@ -6,7 +6,9 @@ on:
   pull_request:
     paths:
       - 'src/realtime-voice.js'
+      - 'backend/speaking-policy.mjs'
       - 'tests/realtime-voice.test.mjs'
+      - 'tests/speaking-policy.test.mjs'
       - '.github/workflows/voice-timing-tests.yml'
 permissions:
   contents: read
@@ -19,6 +21,8 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check src/realtime-voice.js
-      - name: Run offline voice duration safety tests
-        run: node --test tests/realtime-voice.test.mjs
+        run: |
+          node --check src/realtime-voice.js
+          node --check backend/speaking-policy.mjs
+      - name: Run offline voice and quota tests
+        run: node --test tests/realtime-voice.test.mjs tests/speaking-policy.test.mjs
