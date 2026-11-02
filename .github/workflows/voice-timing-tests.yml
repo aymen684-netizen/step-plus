@@ -1,0 +1,24 @@
+name: English+ voice timing safety tests
+on:
+  push:
+    branches:
+      - feature/voice-timing-qa-2026-11-02
+  pull_request:
+    paths:
+      - 'src/realtime-voice.js'
+      - 'tests/realtime-voice.test.mjs'
+      - '.github/workflows/voice-timing-tests.yml'
+permissions:
+  contents: read
+jobs:
+  voice-timing-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: node --check src/realtime-voice.js
+      - name: Run offline voice duration safety tests
+        run: node --test tests/realtime-voice.test.mjs
