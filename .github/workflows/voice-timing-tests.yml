@@ -1,0 +1,31 @@
+name: English+ voice timing and interruption safety tests
+on:
+  push:
+    branches:
+      - feature/voice-timing-qa-2026-11-02
+  pull_request:
+    paths:
+      - 'src/realtime-voice.js'
+      - 'backend/speaking-policy.mjs'
+      - 'tests/realtime-voice.test.mjs'
+      - 'tests/audio-interruption.test.mjs'
+      - 'tests/speaking-policy.test.mjs'
+      - '.github/workflows/voice-timing-tests.yml'
+permissions:
+  contents: read
+jobs:
+  voice-safety-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/realtime-voice.js
+          node --check backend/speaking-policy.mjs
+          node --check tests/audio-interruption.test.mjs
+      - name: Run 48 offline voice safety tests (no OpenAI)
+        run: node --test tests/realtime-voice.test.mjs tests/audio-interruption.test.mjs tests/speaking-policy.test.mjs
