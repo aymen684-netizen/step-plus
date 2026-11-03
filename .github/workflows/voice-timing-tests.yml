@@ -1,4 +1,4 @@
-name: English+ voice timing safety tests
+name: English+ voice timing and interruption safety tests
 on:
   push:
     branches:
@@ -8,13 +8,15 @@ on:
       - 'src/realtime-voice.js'
       - 'backend/speaking-policy.mjs'
       - 'tests/realtime-voice.test.mjs'
+      - 'tests/audio-interruption.test.mjs'
       - 'tests/speaking-policy.test.mjs'
       - '.github/workflows/voice-timing-tests.yml'
 permissions:
   contents: read
 jobs:
-  voice-timing-tests:
+  voice-safety-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,5 +26,6 @@ jobs:
         run: |
           node --check src/realtime-voice.js
           node --check backend/speaking-policy.mjs
-      - name: Run offline voice and quota tests
-        run: node --test tests/realtime-voice.test.mjs tests/speaking-policy.test.mjs
+          node --check tests/audio-interruption.test.mjs
+      - name: Run 48 offline voice safety tests (no OpenAI)
+        run: node --test tests/realtime-voice.test.mjs tests/audio-interruption.test.mjs tests/speaking-policy.test.mjs
